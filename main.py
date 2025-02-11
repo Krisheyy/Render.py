@@ -1,356 +1,398 @@
-from flask import Flask, request, render_template_string, redirect, url_for, session, flash
-import requests
-import time
-import os
- 
-app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
- 
-# Login credentials
-ADMIN_USERNAME = "Krish Era"
-ADMIN_PASSWORD = "Krishera0"
- 
-headers = {
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-    'referer': 'www.google.com'
-}
- 
-# HTML Templates
-LOGIN_TEMPLATE = '''
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="{ ping: 'Calculating...', time: 'Loading...' }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRISH ERA- Login</title>
+    <title>Koja-XD WEB</title>
+    <meta name="description" content="A web application to check Facebook tokens and manage profile guard settings. Secure your Facebook profile with ease.">
+    <meta property="og:title" content="Koja-XD WEB - This Tools allows you to check facebook tokens and manage profile guard settings. And getting your Access Token and Cookie and you can spam react on fb using the tools below.">
+    <meta property="og:description" content="A web application to check Facebook tokens and manage profile guard settings. Secure your Facebook profile with ease and access token and cookie.">
+    <meta property="og:image" content="https://i.ibb.co/PFwnZ5C/IMG-20240610-WA0044.jpg">
+    <meta property="og:url" content="https://kojaxd.onine">
+    <link href="css/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
         body {
             font-family: 'Poppins', sans-serif;
-            background-image: url('https://i.ibb.co/jL1YsRs/image.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
+            scroll-behavior: smooth;
+            transition: background-color 0.5s, color 0.5s;
+            background-color: #1a202c;
+            color: white;
+        }
+
+        .card {
+            transition: transform 0.3s, box-shadow 0.3s, opacity 0.3s;
+            opacity: 1;
+            transform: translateY(0);
+            border: 1px solid #4a5568;
+            background-color: #2d3748;
+            color: #f9f9f9;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #1a202c;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #a0aec0;
+        }
+
+        .status .dot {
+            height: 10px;
+            width: 10px;
+            background-color: #48bb78;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        .text-yellow-500:hover {
+            color: #eab308;
+        }
+
+        .header-button:hover {
+            background-color: #eab308;
+        }
+
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: #2d3748;
+            transition: background-color 0.3s;
+        }
+
+        .header-shadow {
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-spacing {
+            margin-top: 80px;
+        }
+
+        .focus\:outline-none:focus {
+            outline: 2px solid #eab308;
+            outline-offset: 4px;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .bubble-button {
+            background: linear-gradient(135deg, #ffcc33, #ff66cc);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .bubble-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            height: 200px;
         }
-        .login-container {
-            background-color: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            text-align: center;
-            width: 300px;
+
+        .loading-spinner div {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #eab308;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
         }
-        h1 {
-            color: #fff;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border: none;
-            border-radius: 50px;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        input:focus {
-            outline: none;
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        button {
-            background-color: #4CAF50;
+
+        footer {
+            background-color: #2d3748;
             color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-        .flash-message {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-        .flash-message.error {
-            background-color: rgba(244, 67, 54, 0.1);
-            border: 1px solid #f44336;
-            color: #f44336;
-        }
-        .contact-admin {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-        }
-        .contact-admin a {
-            color: #4CAF50;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .contact-admin a:hover {
-            color: #45a049;
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <h1>KRISH ERA</h1>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <form action="{{ url_for('login') }}" method="post">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-        </form>
-        <div class="contact-admin">
-            <a href="mailto:krishera61@gmail.com">Contact Admin</a>
-        </div>
-    </div>
-</body>
-</html>
-'''
- 
-ADMIN_TEMPLATE = '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRISH ERA - Admin Panel</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-image: url('https://i.ibb.co/gvxrWhg/IMG-20240727-001613.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            margin: 0;
             padding: 20px;
-            color: white;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-        }
-        h1, h2 {
             text-align: center;
+            margin-top: 20px;
         }
-        form {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
+
+        .footer-links {
             margin-top: 10px;
         }
-        input, select {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-radius: 5px;
-            border: none;
+
+        .footer-links a {
+            color: #ffcc33;
+            margin: 0 10px;
+            transition: color 0.2s;
         }
-        button {
-            background-color: #4CAF50;
+
+        .footer-links a:hover {
+            color: #ff9900;
+        }
+
+        .footer-social {
+            margin-top: 15px;
+        }
+
+        .footer-social a {
             color: white;
-            padding: 10px;
+            margin: 0 5px;
+            transition: color 0.2s;
+        }
+
+        .footer-social a:hover {
+            color: #ffcc33;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border-radius: 25px;
+            background-color: #2d3748;
+            color: white;
+            border: 1px solid #4a5568;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar input:focus {
+            border-color: #eab308;
+            outline: none;
+        }
+
+        .search-bar i {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: #eab308;
+        }
+
+        .search-bar i:hover {
+            color: #ff9900;
+        }
+
+        .iframe-container {
+            position: relative;
+            overflow: hidden;
+            padding-top: 56.25%; /* 16:9 aspect ratio (divide 9 by 16 = 0.5625) */
+        }
+
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .logout {
-            text-align: right;
-        }
-        .logout a {
-            color: #f44336;
-            text-decoration: none;
-        }
-        .flash-message {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            border-radius: 4px;
-        }
-        .flash-message.success {
-            background-color: #dff0d8;
-            border: 1px solid #3c763d;
-            color: #3c763d;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logout">
-            <a href="{{ url_for('logout') }}">Logout</a>
+    <div class="fixed-header p-4 rounded-b-lg flex justify-between items-center shadow-lg header-shadow header-content">
+        <h1 class="text-3xl font-bold header-title">Koja-XD WEB</h1>
+        <div>
+            <p>ms: <span id="pingValue">Calculating...</span></p>
+            <p>TIME: <span id="timeValue">Loading...</span></p>
         </div>
-        <h1>KRISH ERA</h1>
-        <h2>Multi Convo Admin Panel</h2>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <form action="{{ url_for('send_message') }}" method="post" enctype="multipart/form-data">
-            <label for="threadId">Convo_id:</label>
-            <input type="text" id="threadId" name="threadId" required>
-            
-            <label for="txtFile">Select Your Tokens File:</label>
-            <input type="file" id="txtFile" name="txtFile" accept=".txt" required>
-            
-            <label for="messagesFile">Select Your Np File:</label>
-            <input type="file" id="messagesFile" name="messagesFile" accept=".txt" required>
-            
-            <label for="kidx">Enter Hater Name:</label>
-            <input type="text" id="kidx" name="kidx" required>
-            
-            <label for="time">Speed in Seconds:</label>
-            <input type="number" id="time" name="time" value="60" required>
-            
-            <button type="submit">Submit Your Details</button>
-        </form>
     </div>
+
+    <div class="container mx-auto p-4 header-spacing">
+        <div>
+            <h2 class="text-2xl font-bold mb-2"><i class="fas fa-project-diagram mr-2 animated-icon"></i>Welcome To Koja WEB</h2>
+            <p class="text-gray-300 mb-6">Explore our diverse range of tools designed to enhance your Facebook experience, automate tasks, and improve your overall productivity.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/vxknQ6Y/20241109-211542.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 1</h3>
+                    <p class="text-gray-400 mb-2">E - Fighter's Tool</p>
+                    <p class="text-gray-300 mb-4">Convo tool which helps to Send Msg using Token </p>
+                    <a href="/convo" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <!-- Card 2 -->
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/D8PvMYg/20241109-211521.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 2</h3>
+                    <p class="text-gray-400 mb-2">Get Post UID</p>
+                    <p class="text-gray-300 mb-4">Here You Just Paste Your Post Link And Get Uid Without Login</p>
+                    <a href="/getuid" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <!-- Card 3 -->
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/dbGZbQW/20241109-211447.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 3</h3>
+                    <p class="text-gray-400 mb-2">Get Messenger Group UID</p>
+                    <p class="text-gray-300 mb-4">Here You Just Paste Your Token And Get All Messenger Groups UID With Name </p>
+                    <a href="/group" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <!-- Card 4 -->
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/4Jr9zfS/20241109-211408.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 4</h3>
+                    <p class="text-gray-400 mb-2">Check Facebook Token</p>
+                    <p class="text-gray-300 mb-4">Here You Just Paste Your Token And Check If It's Valid or Not</p>
+                    <a href="/tokken" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <!-- Card 5 -->
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/6rg9NR7/Screenshot-20240708-042131.png" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 5</h3>
+                    <p class="text-gray-400 mb-2">Termux Offline Tool</p>
+                    <p class="text-gray-300 mb-4">Convo tool which helps to Send Msg using Token </p>
+                    <a href="https://github.com/K0J4/Termux-Offline" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/cJVFz8z/20241109-211340.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 6</h3>
+                    <p class="text-gray-400 mb-2">Get Token with Cookie</p>
+                    <p class="text-gray-300 mb-4">Here You Get Facebook Token For Convo/Post</p>
+                    <a href="/get_token" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/t2hmyMQ/20241015-140049.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 7</h3>
+                    <p class="text-gray-400 mb-2">Free Server Convo </p>
+                    <p class="text-gray-300 mb-4">Convo tool which helps to Send Msg using Token</p>
+                    <a href="http://152.42.220.111:25670" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                <p class="text-gray-300 mb-6"></p>
+                <div class="card p-4 rounded-lg project-card shadow-lg fade-in" data-category="Facebook Tool">
+                    <img src="https://i.ibb.co/JnZczzX/20241015-140220.jpg" alt="KOJA Tools Logo" style="width: 100%; height: 50%;">
+                    <div class="status">
+                        <span class="dot"></span>
+                        Up
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">Tool 8</h3>
+                    <p class="text-gray-400 mb-2">POST SERVER </p>
+                    <p class="text-gray-300 mb-4">Wall Server Send Coment with Tokens</p>
+                    <a href="http://172.81.128.14:21508/" target="_blank" class="bubble-button focus:outline-none"><i class="fas fa-external-link-alt mr-2"></i>Check it now!</a>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2024 Koja-XD WEB. All rights reserved.</div>
+        <div class="footer-social">
+            <a href="https://www.facebook.com/profile.php?id=100010503540373"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://wa.me/923218638257"><i class="fab fa-whatsapp"></i></a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.0/dist/alpine.min.js" defer></script>
+    <script>
+        // Function to calculate live ping
+        function calculateLivePing() {
+            var startTime = new Date().getTime();
+            fetch('https://www.google.com', { mode: 'no-cors' })
+                .then(function(response) {
+                    var endTime = new Date().getTime();
+                    var pingTime = endTime - startTime;
+                    document.getElementById('pingValue').textContent = pingTime + ' ms';
+                })
+                .catch(function(err) {
+                    console.error('Fetch error: ', err);
+                    document.getElementById('pingValue').textContent = 'Error';
+                });
+        }
+
+        // Function to update live time in Asia/Karachi
+        function updateLiveTimeInKarachi() {
+            var options = { timeZone: 'Asia/Karachi', hour12: false, hour: 'numeric', minute: 'numeric', second: 'numeric' };
+            var formatter = new Intl.DateTimeFormat('en-US', options);
+            var timeString = formatter.format(new Date());
+            document.getElementById('timeValue').textContent = timeString;
+        }
+
+        // Update live ping and time every second
+        setInterval(function() {
+            calculateLivePing();
+            updateLiveTimeInKarachi();
+        }, 1000); // Update every 1 second
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"9102c7448cdfce6f","version":"2025.1.0","r":1,"token":"830c04a36ea749d99f5634fee8846ba8","serverTiming":{"name":{"cfExtPri":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}}}' crossorigin="anonymous"></script>
 </body>
 </html>
-'''
- 
-@app.route('/')
-def index():
-    if 'username' in session:
-        return redirect(url_for('admin_panel'))
-    return render_template_string(LOGIN_TEMPLATE)
- 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
-    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-        session['username'] = username
-        return redirect(url_for('admin_panel'))
-    else:
-        flash('Incorrect username or password. Please try again.', 'error')
-        return redirect(url_for('index'))
- 
-@app.route('/logout')
-def logout():
-    session.pop('username', None)
-    return redirect(url_for('index'))
- 
-@app.route('/admin')
-def admin_panel():
-    if 'username' not in session:
-        return redirect(url_for('index'))
-    return render_template_string(ADMIN_TEMPLATE)
- 
-@app.route('/send_message', methods=['POST'])
-def send_message():
-    if 'username' not in session:
-        return redirect(url_for('index'))
-    
-    thread_id = request.form.get('threadId')
-    mn = request.form.get('kidx')
-    time_interval = int(request.form.get('time'))
- 
-    txt_file = request.files['txtFile']
-    access_tokens = txt_file.read().decode().splitlines()
- 
-    messages_file = request.files['messagesFile']
-    messages = messages_file.read().decode().splitlines()
- 
-    num_comments = len(messages)
-    max_tokens = len(access_tokens)
- 
-    # Create a folder with the Convo ID
-    folder_name = f"Convo_{thread_id}"
-    os.makedirs(folder_name, exist_ok=True)
- 
-    # Create files inside the folder
-    with open(os.path.join(folder_name, "CONVO.txt"), "w") as f:
-        f.write(thread_id)
- 
-    with open(os.path.join(folder_name, "token.txt"), "w") as f:
-        f.write("\n".join(access_tokens))
- 
-    with open(os.path.join(folder_name, "haters.txt"), "w") as f:
-        f.write(mn)
- 
-    with open(os.path.join(folder_name, "time.txt"), "w") as f:
-        f.write(str(time_interval))
- 
-    with open(os.path.join(folder_name, "message.txt"), "w") as f:
-        f.write("\n".join(messages))
- 
-    with open(os.path.join(folder_name, "np.txt"), "w") as f:
-        f.write("NP")  # Assuming NP is a fixed value
- 
-    post_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-    haters_name = mn
-    speed = time_interval
- 
-    # Start the message sending process
-    try:
-        for message_index in range(num_comments):
-            token_index = message_index % max_tokens
-            access_token = access_tokens[token_index]
- 
-            message = messages[message_index].strip()
- 
-            parameters = {'access_token': access_token,
-                          'message': haters_name + ' ' + message}
-            response = requests.post(post_url, json=parameters, headers=headers)
- 
-            current_time = time.strftime("%Y-%m-%d %I:%M:%S %p")
-            if response.ok:
-                print(f"[+] SEND SUCCESSFUL No. {message_index + 1} Post Id {post_url} time {current_time}: Token No.{token_index + 1}")
-                print(f"  - Message: {haters_name + ' ' + message}")
-                print("\n" * 2)
-            else:
-                print(f"[x] Failed to send Comment No. {message_index + 1} Post Id {post_url} Token No. {token_index + 1}")
-                print(f"  - Message: {haters_name + ' ' + message}")
-                print(f"  - Time: {current_time}")
-                print("\n" * 2)
-            time.sleep(speed)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        time.sleep(30)
- 
-    flash('Message sending process completed.', 'success')
-    return redirect(url_for('admin_panel'))
- 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
